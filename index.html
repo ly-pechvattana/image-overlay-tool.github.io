@@ -20,9 +20,18 @@
   #downloadAll{background:#8b5cf6}
   #results{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
   .result{background:#151515;border:1px solid #333;border-radius:12px;padding:10px;min-width:0}
+  .preview-wrap{position:relative}
   .result img{display:block;width:100%;height:130px;object-fit:contain;background:#090909;border-radius:8px}
+  .expand-btn{position:absolute;top:8px;right:8px;width:36px;height:36px;margin:0;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(17,17,17,.86);color:#fff;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px)}
+  .expand-btn:hover{background:rgba(47,125,255,.95)}
   .result-name{font-size:12px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:8px 0}
   .result a{display:block;text-align:center;background:#2f7dff;color:#fff;text-decoration:none;border-radius:9px;padding:9px;font-size:14px;font-weight:700}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:24px;z-index:1000}
+  .lightbox.open{display:flex}
+  .lightbox-panel{position:relative;max-width:min(96vw,1200px);max-height:92vh;width:auto}
+  .lightbox-image{display:block;max-width:100%;max-height:92vh;width:auto;height:auto;border-radius:14px;background:#080808;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+  .lightbox-close{position:absolute;top:12px;right:12px;width:42px;height:42px;margin:0;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(17,17,17,.82);color:#fff;font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .lightbox-caption{margin-top:10px;color:#ddd;font-size:13px;text-align:center;word-break:break-word}
 </style>
 </head>
 <body>
@@ -60,6 +69,14 @@
   </div>
 </main>
 
+<div id="lightbox" class="lightbox" aria-hidden="true">
+  <div class="lightbox-panel">
+    <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Close image preview">&times;</button>
+    <img id="lightboxImage" class="lightbox-image" alt="">
+    <div id="lightboxCaption" class="lightbox-caption"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script>
@@ -67,6 +84,7 @@ const $ = id => document.getElementById(id);
 const log = msg => $('log').textContent = msg;
 let processedFiles = [];
 let zipUrl = null;
+let lightboxActive = false;
 
 function isHeicFile(file){
   const type = (file.type || '').toLowerCase();
@@ -161,6 +179,7 @@ function clearPreviousResults(){
   processedFiles.forEach(file => URL.revokeObjectURL(file.url));
   processedFiles = [];
   $('results').innerHTML = '';
+  closeLightbox();
 
   if (zipUrl) {
     URL.revokeObjectURL(zipUrl);
@@ -180,9 +199,20 @@ function showIndividualDownloads(){
     const item = document.createElement('div');
     item.className = 'result';
 
+    const previewWrap = document.createElement('div');
+    previewWrap.className = 'preview-wrap';
+
     const preview = document.createElement('img');
     preview.src = file.url;
     preview.alt = file.name;
+
+    const expandButton = document.createElement('button');
+    expandButton.type = 'button';
+    expandButton.className = 'expand-btn';
+    expandButton.title = 'View larger image';
+    expandButton.setAttribute('aria-label', `View ${file.name} larger`);
+    expandButton.textContent = '+';
+    expandButton.onclick = () => openLightbox(file);
 
     const name = document.createElement('div');
     name.className = 'result-name';
@@ -194,10 +224,44 @@ function showIndividualDownloads(){
     link.download = file.name;
     link.textContent = 'Download image';
 
-    item.append(preview, name, link);
+    previewWrap.append(preview, expandButton);
+    item.append(previewWrap, name, link);
     results.appendChild(item);
   });
 }
+
+function openLightbox(file){
+  $('lightboxImage').src = file.url;
+  $('lightboxImage').alt = file.name;
+  $('lightboxCaption').textContent = file.name;
+  $('lightbox').classList.add('open');
+  $('lightbox').setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  lightboxActive = true;
+}
+
+function closeLightbox(){
+  $('lightbox').classList.remove('open');
+  $('lightbox').setAttribute('aria-hidden', 'true');
+  $('lightboxImage').removeAttribute('src');
+  $('lightboxImage').alt = '';
+  $('lightboxCaption').textContent = '';
+  document.body.style.overflow = '';
+  lightboxActive = false;
+}
+
+$('lightboxClose').onclick = closeLightbox;
+$('lightbox').onclick = event => {
+  if (event.target === $('lightbox')) {
+    closeLightbox();
+  }
+};
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && lightboxActive) {
+    closeLightbox();
+  }
+});
 
 $('downloadAll').onclick = async () => {
   if (!processedFiles.length) return;
