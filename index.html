@@ -14,6 +14,19 @@
     <label>1) Choose photos</label>
     <input id="photos" type="file" accept="image/*" multiple>
     <div class="small">Select many photos at once. JPEG, PNG, and most HEIC/HEIF camera photos are supported.</div>
+    <label for="cropRatio">Crop ratio (optional)</label>
+    <select id="cropRatio">
+      <option value="none">No crop</option>
+      <option value="1:1">1:1 Square</option>
+      <option value="4:5">4:5 Instagram Portrait</option>
+      <option value="3:4">3:4 Portrait</option>
+      <option value="9:16">9:16 Story / Reel</option>
+      <option value="16:9">16:9 Landscape</option>
+      <option value="4:3">4:3 Landscape</option>
+      <option value="1.91:1">1.91:1 Facebook Link</option>
+    </select>
+    <button id="cropPhotos" type="button" disabled>Crop selected photos</button>
+    <div id="photoStatus" class="small">No photos selected yet.</div>
   </div>
 
   <div class="card">
@@ -46,6 +59,35 @@
     <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Close image preview">&times;</button>
     <img id="lightboxImage" class="lightbox-image" alt="">
     <div id="lightboxCaption" class="lightbox-caption"></div>
+  </div>
+</div>
+
+<div id="cropModal" class="modal" aria-hidden="true">
+  <div class="modal-panel crop-panel">
+    <div class="modal-head">
+      <div>
+        <h2>Crop photo</h2>
+        <div id="cropStep" class="small"></div>
+      </div>
+      <button id="cropClose" class="modal-close" type="button" aria-label="Close crop editor">&times;</button>
+    </div>
+
+    <div class="crop-workspace">
+      <div id="cropViewport" class="crop-viewport">
+        <img id="cropImage" class="crop-image" alt="">
+        <div id="cropSelection" class="crop-selection"></div>
+      </div>
+      <div class="crop-sidebar">
+        <div class="small">Drag the crop box to choose the area to keep. The selected ratio stays locked for social media sizing.</div>
+        <div id="cropRatioLabel" class="small"></div>
+        <div id="cropImageName" class="small"></div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button id="cropSkip" type="button">Skip this photo</button>
+      <button id="cropApply" type="button">Apply crop</button>
+    </div>
   </div>
 </div>
 
