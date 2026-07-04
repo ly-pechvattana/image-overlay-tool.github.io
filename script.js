@@ -287,10 +287,23 @@ async function prepareCropStep(){
     cropImage.onload = () => requestAnimationFrame(resolve);
   });
 
-  const displayWidth = cropImage.clientWidth;
-  const displayHeight = cropImage.clientHeight;
-  cropState.currentDisplayRect = { width: displayWidth, height: displayHeight };
+  const viewportRect = $('cropViewport').getBoundingClientRect();
+  const imageRect = cropImage.getBoundingClientRect();
+  const displayWidth = imageRect.width;
+  const displayHeight = imageRect.height;
+  const offsetX = imageRect.left - viewportRect.left;
+  const offsetY = imageRect.top - viewportRect.top;
+
+  cropState.currentDisplayRect = {
+    x: offsetX,
+    y: offsetY,
+    width: displayWidth,
+    height: displayHeight
+  };
+
   cropState.selection = buildInitialSelection(displayWidth, displayHeight, cropState.ratio);
+  cropState.selection.x += Math.round(offsetX);
+  cropState.selection.y += Math.round(offsetY);
   positionCropSelection();
 }
 
@@ -359,8 +372,8 @@ async function applyCurrentCrop(){
 
   const scaleX = image.naturalWidth / display.width;
   const scaleY = image.naturalHeight / display.height;
-  const cropX = Math.round(selection.x * scaleX);
-  const cropY = Math.round(selection.y * scaleY);
+  const cropX = Math.round((selection.x - display.x) * scaleX);
+  const cropY = Math.round((selection.y - display.y) * scaleY);
   const cropWidth = Math.round(selection.width * scaleX);
   const cropHeight = Math.round(selection.height * scaleY);
 
@@ -401,10 +414,12 @@ function moveCropSelection(clientX, clientY){
   if (!cropState.dragging || !cropState.selection || !cropState.currentDisplayRect) return;
 
   const viewportRect = $('cropViewport').getBoundingClientRect();
-  const maxX = cropState.currentDisplayRect.width - cropState.selection.width;
-  const maxY = cropState.currentDisplayRect.height - cropState.selection.height;
-  cropState.selection.x = clamp(clientX - viewportRect.left - cropState.dragOffsetX, 0, maxX);
-  cropState.selection.y = clamp(clientY - viewportRect.top - cropState.dragOffsetY, 0, maxY);
+  const minX = cropState.currentDisplayRect.x;
+  const minY = cropState.currentDisplayRect.y;
+  const maxX = cropState.currentDisplayRect.x + cropState.currentDisplayRect.width - cropState.selection.width;
+  const maxY = cropState.currentDisplayRect.y + cropState.currentDisplayRect.height - cropState.selection.height;
+  cropState.selection.x = clamp(clientX - viewportRect.left - cropState.dragOffsetX, minX, maxX);
+  cropState.selection.y = clamp(clientY - viewportRect.top - cropState.dragOffsetY, minY, maxY);
   positionCropSelection();
 }
 
