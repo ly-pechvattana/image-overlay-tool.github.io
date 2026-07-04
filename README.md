@@ -1,2 +1,6 @@
 # image-overlay-tool
-Adding a png ovelay as a footer or frame on a image. 
+Adding a png image ovelay as a footer or frame on images.
+## Supported format:
+◆ PNG
+◆ JPG
+◆ HEIC 
