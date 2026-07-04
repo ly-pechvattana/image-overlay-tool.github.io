@@ -287,23 +287,18 @@ async function prepareCropStep(){
     cropImage.onload = () => requestAnimationFrame(resolve);
   });
 
-  const viewportRect = $('cropViewport').getBoundingClientRect();
-  const imageRect = cropImage.getBoundingClientRect();
-  const displayWidth = imageRect.width;
-  const displayHeight = imageRect.height;
-  const offsetX = imageRect.left - viewportRect.left;
-  const offsetY = imageRect.top - viewportRect.top;
-
   cropState.currentDisplayRect = {
-    x: offsetX,
-    y: offsetY,
-    width: displayWidth,
-    height: displayHeight
+    x: 0,
+    y: 0,
+    width: cropImage.clientWidth,
+    height: cropImage.clientHeight
   };
 
-  cropState.selection = buildInitialSelection(displayWidth, displayHeight, cropState.ratio);
-  cropState.selection.x += Math.round(offsetX);
-  cropState.selection.y += Math.round(offsetY);
+  cropState.selection = buildInitialSelection(
+    cropState.currentDisplayRect.width,
+    cropState.currentDisplayRect.height,
+    cropState.ratio
+  );
   positionCropSelection();
 }
 
@@ -404,22 +399,22 @@ async function applyCurrentCrop(){
 function startCropDrag(clientX, clientY){
   if (!cropState.selection) return;
 
-  const viewportRect = $('cropViewport').getBoundingClientRect();
+  const stageRect = $('cropStage').getBoundingClientRect();
   cropState.dragging = true;
-  cropState.dragOffsetX = clientX - viewportRect.left - cropState.selection.x;
-  cropState.dragOffsetY = clientY - viewportRect.top - cropState.selection.y;
+  cropState.dragOffsetX = clientX - stageRect.left - cropState.selection.x;
+  cropState.dragOffsetY = clientY - stageRect.top - cropState.selection.y;
 }
 
 function moveCropSelection(clientX, clientY){
   if (!cropState.dragging || !cropState.selection || !cropState.currentDisplayRect) return;
 
-  const viewportRect = $('cropViewport').getBoundingClientRect();
+  const stageRect = $('cropStage').getBoundingClientRect();
   const minX = cropState.currentDisplayRect.x;
   const minY = cropState.currentDisplayRect.y;
   const maxX = cropState.currentDisplayRect.x + cropState.currentDisplayRect.width - cropState.selection.width;
   const maxY = cropState.currentDisplayRect.y + cropState.currentDisplayRect.height - cropState.selection.height;
-  cropState.selection.x = clamp(clientX - viewportRect.left - cropState.dragOffsetX, minX, maxX);
-  cropState.selection.y = clamp(clientY - viewportRect.top - cropState.dragOffsetY, minY, maxY);
+  cropState.selection.x = clamp(clientX - stageRect.left - cropState.dragOffsetX, minX, maxX);
+  cropState.selection.y = clamp(clientY - stageRect.top - cropState.dragOffsetY, minY, maxY);
   positionCropSelection();
 }
 
@@ -449,12 +444,12 @@ $('cropSelection').addEventListener('pointerdown', event => {
   startCropDrag(event.clientX, event.clientY);
 });
 
-$('cropViewport').addEventListener('pointermove', event => {
+$('cropStage').addEventListener('pointermove', event => {
   moveCropSelection(event.clientX, event.clientY);
 });
 
-$('cropViewport').addEventListener('pointerup', stopCropDrag);
-$('cropViewport').addEventListener('pointerleave', stopCropDrag);
+$('cropStage').addEventListener('pointerup', stopCropDrag);
+$('cropStage').addEventListener('pointerleave', stopCropDrag);
 document.addEventListener('pointermove', event => {
   moveCropSelection(event.clientX, event.clientY);
 });

@@ -35,6 +35,7 @@ button:disabled{background:#555;color:#aaa;cursor:not-allowed}
 .modal-close{width:42px;min-width:42px;height:42px;margin:0;padding:0;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:#232323;color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center}
 .crop-workspace{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:16px;align-items:start}
 .crop-viewport{position:relative;width:100%;background:#0a0a0a;border:1px solid #2d2d2d;border-radius:16px;overflow:hidden;touch-action:none;user-select:none;display:flex;align-items:center;justify-content:center;min-height:320px}
+.crop-stage{position:relative;display:inline-block;line-height:0;max-width:100%}
 .crop-image{display:block;max-width:100%;width:auto;height:auto;max-height:68vh;object-fit:contain;pointer-events:none}
 .crop-selection{position:absolute;border:2px solid #fff;border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.45),0 10px 30px rgba(0,0,0,.3);cursor:grab}
 .crop-selection:active{cursor:grabbing}
