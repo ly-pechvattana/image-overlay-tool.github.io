@@ -32,7 +32,7 @@
   <div class="card">
     <label>1) Choose photos</label>
     <input id="photos" type="file" accept="image/*" multiple>
-    <div class="small">Select many photos at once.</div>
+    <div class="small">Select many photos at once. JPEG, PNG, and most HEIC/HEIF camera photos are supported.</div>
   </div>
 
   <div class="card">
@@ -61,35 +61,89 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const log = msg => $('log').textContent = msg;
 let processedFiles = [];
 let zipUrl = null;
 
-function loadImage(file){
+function isHeicFile(file){
+  const type = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+  return type === 'image/heic' ||
+    type === 'image/heif' ||
+    type === 'image/heic-sequence' ||
+    type === 'image/heif-sequence' ||
+    name.endsWith('.heic') ||
+    name.endsWith('.heif');
+}
+
+function decodeImageFromDataUrl(dataUrl, fileName){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      if (!img.naturalWidth || !img.naturalHeight) {
+        reject(new Error(`${fileName} has invalid image dimensions.`));
+        return;
+      }
+      resolve(img);
+    };
+    img.onerror = () => reject(new Error(
+      `Could not decode ${fileName}. This browser may not support this image format.`
+    ));
+    img.src = dataUrl;
+  });
+}
+
+async function convertHeicToDataUrl(file){
+  if (!window.heic2any) {
+    throw new Error('HEIC support failed to load. Reload the page with internet access and try again.');
+  }
+
+  const converted = await window.heic2any({
+    blob: file,
+    toType: 'image/jpeg',
+    quality: 0.92
+  });
+
+  const outputBlob = Array.isArray(converted) ? converted[0] : converted;
+  if (!(outputBlob instanceof Blob)) {
+    throw new Error(`Could not convert ${file.name} from HEIC.`);
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
-    reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        if (!img.naturalWidth || !img.naturalHeight) {
-          reject(new Error(`${file.name} has invalid image dimensions.`));
-          return;
-        }
-        resolve(img);
-      };
-      img.onerror = () => reject(new Error(
-        `Could not decode ${file.name}. This browser may not support ${file.type || 'this image format'}. ` +
-        `Convert HEIC/HEIF files to JPEG or PNG and try again.`
-      ));
-      img.src = reader.result;
-    };
-
-    reader.readAsDataURL(file);
+    reader.onerror = () => reject(new Error(`Could not read converted ${file.name}.`));
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(outputBlob);
   });
+}
+
+async function loadImage(file){
+  try {
+    if (isHeicFile(file)) {
+      const dataUrl = await convertHeicToDataUrl(file);
+      return await decodeImageFromDataUrl(dataUrl, file.name);
+    }
+
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+
+    return await decodeImageFromDataUrl(dataUrl, file.name);
+  } catch (error) {
+    if (isHeicFile(file)) {
+      throw new Error(
+        `Could not decode ${file.name}. HEIC/HEIF conversion failed in this browser. ` +
+        `Try Chrome, Edge, or convert the photo to JPEG first.`
+      );
+    }
+    throw error;
+  }
 }
 
 function canvasToBlob(canvas, type){
